@@ -371,22 +371,22 @@
             statusText: document.getElementById('status-text')
         };
 
-        const MOCK_DATA = {
+        const FIELD_KEYWORDS = {
             account_opening: {
-                name: { value: "Razwan Ahmed", confidence: 0.99 },
-                dob: { value: "01/01/1985", confidence: 0.92 },
-                address: { value: "123 Prime Street, Dhaka", confidence: 0.98 },
-                pan: { value: "ABCDE1234F", confidence: 0.97 }
+                name: ['full name', 'name', 'customer name'],
+                dob: ['date of birth', 'dob'],
+                address: ['address', 'residence address'],
+                pan: ['pan number', 'pan']
             },
             card_request: {
-                name: { value: "Jane Doe", confidence: 0.99 },
-                accountNumber: { value: "123456789012", confidence: 0.95 },
-                cardType: { value: "Visa Platinum", confidence: 0.91 }
+                name: ['full name', 'name', 'customer name'],
+                accountNumber: ['account number', 'a/c no'],
+                cardType: ['card type', 'type of card']
             },
             cheque_request: {
-                name: { value: "John Smith", confidence: 0.99 },
-                accountNumber: { value: "987654321098", confidence: 0.94 },
-                leaves: { value: "25", confidence: 0.98 }
+                name: ['full name', 'name', 'customer name'],
+                accountNumber: ['account number', 'a/c no'],
+                leaves: ['number of leaves', 'leaves']
             }
         };
 
@@ -504,11 +504,15 @@
                 log("OCR complete. Validating content...");
                 const ocrText = text.toLowerCase();
                 let isValid = false;
-                if (selectedFormType === 'account_opening' && (ocrText.includes('account opening') || ocrText.includes('account form'))) {
-                    isValid = true;
-                } else if (selectedFormType === 'card_request' && (ocrText.includes('card request') || ocrText.includes('debit card'))) {
-                    isValid = true;
-                } else if (selectedFormType === 'cheque_request' && (ocrText.includes('cheque book') || ocrText.includes('check book'))) {
+
+                const validationRules = {
+                    'account_opening': ['account opening', 'account form'],
+                    'card_request': ['card request', 'debit card', 'credit card'],
+                    'cheque_request': ['cheque book', 'check book', 'cheque request']
+                };
+
+                const keywords = validationRules[selectedFormType];
+                if (keywords && keywords.some(keyword => ocrText.includes(keyword))) {
                     isValid = true;
                 }
 
@@ -516,7 +520,7 @@
                     log("Validation successful. Document type matches selection.", false);
                     showToast("Validation successful!");
                     updateStep(0, 'completed');
-                    runFullProcess(selectedFormType);
+                    runFullProcess(selectedFormType, text); // Pass full text
                 } else {
                     log("Validation Failed: The uploaded document does not match the selected form type.", true);
                     alert("Validation Failed: The uploaded document does not match the selected form type. Please upload the correct document or select the correct form type.");
@@ -532,7 +536,38 @@
             }
         }
 
-        function runFullProcess(formType) {
+        function extractDataFromText(fullText, formType) {
+            log("Starting keyword-based data extraction...");
+            const extractedData = {};
+            const lines = fullText.toLowerCase().split('\n');
+            const fieldKeywords = FIELD_KEYWORDS[formType];
+
+            for (const key in fieldKeywords) {
+                extractedData[key] = { value: 'N/A', confidence: 0.10 };
+            }
+
+            lines.forEach(line => {
+                for (const key in fieldKeywords) {
+                    const keywords = fieldKeywords[key];
+                    if (keywords.some(kw => line.includes(kw))) {
+                        let value = line.split(':').pop().trim();
+                        if (value === line.trim()) {
+                            const keywordUsed = keywords.find(kw => line.includes(kw));
+                            value = line.substring(line.indexOf(keywordUsed) + keywordUsed.length).trim();
+                        }
+                        if (value) {
+                            extractedData[key] = { value: value, confidence: 0.95 }; // Assign static confidence
+                            log(`Extracted '${key}': ${value}`);
+                        }
+                    }
+                }
+            });
+
+            log("Extraction process complete.");
+            return extractedData;
+        }
+
+        function runFullProcess(formType, ocrText) {
             log("Starting AI extraction process...");
             updateStep(1, 'active');
             els.uploadCard.style.display = 'none';
@@ -545,13 +580,10 @@
                 updateStep(2, 'active');
                 els.headerStatus.style.display = 'none';
                 
-                const template = document.getElementById(`dt-${formType}`);
-                const clone = template.cloneNode(true);
-                els.digitalTwin.innerHTML = '';
-                els.digitalTwin.appendChild(clone);
+                const extractedData = extractDataFromText(ocrText, formType);
                 
-                populateForm(formType);
-                calculateAndShowAccuracy(formType);
+                populateForm(formType, extractedData);
+                calculateAndShowAccuracy(extractedData);
 
                 els.emptyState.style.display = 'none';
                 els.digitalTwin.style.display = 'block';
@@ -609,9 +641,13 @@
             log('Digital twin populated with extracted data.');
         }
 
-        function calculateAndShowAccuracy(formType) {
-            const data = MOCK_DATA[formType];
+        function calculateAndShowAccuracy(data) {
             const confidences = Object.values(data).map(item => item.confidence);
+            if (confidences.length === 0) {
+                els.scoreDisplay.textContent = '0%';
+                els.accuracyPanel.style.display = 'block';
+                return;
+            }
             const avgConfidence = confidences.reduce((a, b) => a + b, 0) / confidences.length;
             const score = Math.round(avgConfidence * 100);
             

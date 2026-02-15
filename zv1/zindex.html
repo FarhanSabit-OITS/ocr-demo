@@ -499,9 +499,9 @@
                 
                 const ocrText = text.toLowerCase();
                 const validationMap = {
-                    account_opening: ['account opening', 'aof'],
-                    card_request: ['debit card', 'card request'],
-                    cheque_request: ['cheque book', 'cheque request']
+                    account_opening: ['account opening form', 'account opening', 'aof'],
+                    card_request: ['card request', 'debit card', 'credit card'],
+                    cheque_request: ['cheque book', 'checkbook', 'cheque request']
                 };
 
                 const keywords = validationMap[selectedFormType];
@@ -583,7 +583,7 @@
                     if (confidence <= 0.95) {
                         const icon = document.createElement('span');
                         icon.className = 'confidence-icon';
-                        icon.textContent = '⚠️';
+                        icon.textContent = 'Ã¢Å¡Â Ã¯Â¸Â';
                         icon.title = `Low Confidence: ${Math.round(confidence * 100)}%`;
                         input.parentNode.insertBefore(icon, input.nextSibling);
                     }

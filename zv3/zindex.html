@@ -504,11 +504,15 @@
                 log('OCR complete. Validating form type...');
                 const ocrText = text.toLowerCase();
                 let isValid = false;
-                if (selectedFormType === 'account_opening' && (ocrText.includes('account opening') || ocrText.includes('customer information'))) {
-                    isValid = true;
-                } else if (selectedFormType === 'card_request' && (ocrText.includes('debit card') || ocrText.includes('card request'))) {
-                    isValid = true;
-                } else if (selectedFormType === 'cheque_request' && (ocrText.includes('cheque book') || ocrText.includes('check book'))) {
+
+                const validationRules = {
+                    'account_opening': ['account opening', 'customer information'],
+                    'card_request': ['debit card', 'card request', 'credit card'],
+                    'cheque_request': ['cheque book', 'check book', 'cheque request']
+                };
+
+                const keywords = validationRules[selectedFormType];
+                if (keywords && keywords.some(keyword => ocrText.includes(keyword))) {
                     isValid = true;
                 }
 
@@ -573,8 +577,8 @@
                     input.value = fieldData.value;
                     const confidence = fieldData.confidence;
                     const icon = confidence < 0.95 ?
-                        `<span class="confidence-icon" title="Low Confidence: ${confidence.toFixed(2)}">⚠️</span>` :
-                        `<span class="confidence-icon" title="High Confidence: ${confidence.toFixed(2)}">✔️</span>`;
+                        `<span class="confidence-icon" title="Low Confidence: ${confidence.toFixed(2)}">Ã¢Å¡Â Ã¯Â¸Â</span>` :
+                        `<span class="confidence-icon" title="High Confidence: ${confidence.toFixed(2)}">Ã¢Å“â€Ã¯Â¸Â</span>`;
                     input.classList.add(confidence < 0.95 ? 'low-confidence' : 'high-confidence');
                     
                     const label = input.previousElementSibling;
