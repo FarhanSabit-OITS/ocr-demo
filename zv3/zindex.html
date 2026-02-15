@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prime Bank OCR AI | Verification & Twin</title>
+    <link rel="icon" href="data:,">
     <style>
         :root {
             --primary-color: #003366;
@@ -340,7 +341,7 @@
                 </div>
             </div>
             <div class="digital-twin" id="digital-twin"></div>
-            <canvas id="pdf-canvas" style="display: none;"></canvas>
+            <canvas id="pdf-canvas" style="position: absolute; top: -9999px; left: -9999px;"></canvas>
             <div class="action-bar" id="action-bar">
                 <button class="btn btn-secondary" onclick="resetDemo()">Cancel</button>
                 <button class="btn btn-primary" onclick="generatePDF()">

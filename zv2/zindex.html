@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prime Bank OCR AI | Verification & Twin</title>
+    <link rel="icon" href="data:,">
     <style>
         :root {
             --primary-color: #003366;
@@ -340,7 +341,7 @@
                 </div>
             </div>
             <div class="digital-twin" id="digital-twin"></div>
-            <canvas id="pdf-canvas" style="display: none;"></canvas>
+            <canvas id="pdf-canvas" style="position: absolute; top: -9999px; left: -9999px;"></canvas>
             <div class="action-bar" id="action-bar">
                 <button class="btn btn-secondary" onclick="resetDemo()">Cancel</button>
                 <button class="btn btn-primary" onclick="generatePDF()">
@@ -561,26 +562,51 @@
             }, 2000);
         }
 
-        function populateForm(formType) {
-            const data = MOCK_DATA[formType];
-            const twin = els.digitalTwin;
+        function populateForm(formType, data) {
+            const template = document.getElementById(`dt-${formType}`);
+            if (!template) {
+                log(`Digital twin template for ${formType} not found.`, true);
+                return;
+            }
+            const clone = template.cloneNode(true);
+            clone.id = '';
+
+            // Make all IDs within the cloned template unique to avoid conflicts
+            const allInputs = clone.querySelectorAll('input[id]');
+            allInputs.forEach(input => {
+                const oldId = input.id;
+                const newId = oldId + '_active';
+                input.id = newId;
+
+                const label = clone.querySelector(`label[for="${oldId}"]`);
+                if (label) {
+                    label.setAttribute('for', newId);
+                }
+            });
+
+            els.digitalTwin.innerHTML = '';
+            els.digitalTwin.appendChild(clone);
+
             Object.keys(data).forEach(key => {
-                const input = twin.querySelector(`[data-key="${key}"]`);
+                const fieldData = data[key];
+                const input = els.digitalTwin.querySelector(`[data-key="${key}"]`);
                 if (input) {
-                    const { value, confidence } = data[key];
-                    input.value = value;
-                    const confidenceClass = confidence > 0.95 ? 'high-confidence' : 'low-confidence';
-                    input.classList.add(confidenceClass);
+                    input.value = fieldData.value;
+                    const confidence = fieldData.confidence;
+                    const icon = confidence < 0.95 ?
+                        `<span class="confidence-icon" title="Low Confidence: ${confidence.toFixed(2)}">⚠️</span>` :
+                        `<span class="confidence-icon" title="High Confidence: ${confidence.toFixed(2)}">✔️</span>`;
+                    input.classList.add(confidence < 0.95 ? 'low-confidence' : 'high-confidence');
                     
-                    if (confidence <= 0.95) {
-                        const icon = document.createElement('span');
-                        icon.className = 'confidence-icon';
-                        icon.textContent = '⚠️';
-                        icon.title = `Low Confidence: ${Math.round(confidence * 100)}%`;
-                        input.parentNode.appendChild(icon);
+                    // Find the label associated with the now-unique input ID
+                    const label = els.digitalTwin.querySelector(`label[for="${input.id}"]`);
+                    if (label) {
+                        // Append icon to the label's existing content
+                        label.innerHTML += icon;
                     }
                 }
             });
+            log('Digital twin populated with extracted data.');
         }
 
         function calculateAndShowAccuracy(formType) {
