@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Bank OCR AI | Verification & Twin</title>
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --primary-color: #003366;
+            --secondary-color: #C5A059;
+            --bg-color: #F0F2F5;
+            --surface-color: #FFFFFF;
+            --text-main: #1A1A1A;
+            --text-secondary: #666666;
+            --border-color: #D1D5DB;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --code-bg: #1E1E1E;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            background: #ECFDF5;
+            color: var(--success-color);
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: none; /* Hidden until active */
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* --- MAIN LAYOUT --- */
+        main {
+            flex: 1;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        /* --- LEFT PANEL: WORKFLOW & LOGS --- */
+        .workflow-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+
+        .step-indicator {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        .step.active { opacity: 1; font-weight: 600; }
+        .step.completed { opacity: 1; color: var(--success-color); }
+
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #E5E7EB;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .step.active .step-circle { background: var(--primary-color); color: white; }
+        .step.completed .step-circle { background: var(--success-color); color: white; }
+
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-zone:hover { border-color: var(--primary-color); background: #F9FAFB; }
+
+        .log-console {
+            background: var(--code-bg);
+            color: #10B981;
+            font-family: 'Courier New', monospace;
+            padding: 1rem;
+            border-radius: 6px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            display: none;
+        }
+
+        /* --- RIGHT PANEL: DIGITAL TWIN & FORM --- */
+        .preview-panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            min-height: 800px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+        }
+
+        /* THE DIGITAL TWIN FORM (Visual Replica) */
+        .digital-twin {
+            border: 1px solid #000;
+            padding: 2rem;
+            background: #fff;
+            display: none; /* Hidden initially */
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .dt-header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .dt-header h1 { font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
+        .dt-header p { font-size: 0.9rem; margin-top: 0.5rem; }
+
+        .dt-section {
+            margin-bottom: 1.5rem;
+            border: 1px solid #000;
+            padding: 1rem;
+        }
+
+        .dt-section-title {
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin: -1rem -1rem 1rem -1rem;
+            display: inline-block;
+        }
+
+        .dt-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .dt-field { margin-bottom: 0.75rem; }
+        .dt-field.full-width { grid-column: span 2; }
+
+        .dt-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .dt-input {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid #ccc;
+            padding: 4px 0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            background: transparent;
+            border-radius: 0;
+        }
+
+        .dt-input:focus { outline: none; border-bottom: 2px solid var(--primary-color); }
+        
+        /* Confidence Styling */
+        .high-confidence { border-bottom: 1px solid #ccc; }
+        .low-confidence { border-bottom: 1px solid var(--warning-color); background-color: rgba(245, 158, 11, 0.05); }
+        
+        .confidence-icon {
+            font-size: 0.7rem;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+
+        /* --- ACTION BAR --- */
+        .action-bar {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            display: none; /* Hidden initially */
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: #002244; }
+        .btn-secondary { background: white; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-secondary:hover { background: #F3F4F6; }
+
+        /* --- ACCURACY PANEL --- */
+        .accuracy-card {
+            margin-top: 1rem;
+            background: #F0FDF4;
+            border: 1px solid #BBF7D0;
+            padding: 1rem;
+            border-radius: 8px;
+            display: none;
+        }
+        .accuracy-score { font-size: 1.5rem; font-weight: 700; color: var(--success-color); }
+        .accuracy-label { font-size: 0.85rem; color: #166534; }
+
+        /* --- TOAST --- */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #333;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 6px;
+            transform: translateY(100px);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+        .toast.show { transform: translateY(0); }
+
+        /* --- PRINT STYLES (PDF Generation) --- */
+        @media print {
+            body { background: white; -webkit-print-color-adjust: exact; }
+            header, .workflow-panel, .action-bar, .toast { display: none !important; }
+            main { display: block; padding: 0; margin: 0; max-width: none; }
+            .preview-panel { box-shadow: none; padding: 0; border: none; }
+            .digital-twin { border: none; display: block !important; padding: 0; }
+            .dt-input { border-bottom: 1px solid #000; } /* Force black borders for print */
+            .dt-input::placeholder { color: transparent; }
+            .confidence-icon { display: none; }
+            .low-confidence { background-color: transparent; }
+            /* Add print footer */
+            .digital-twin::after {
+                content: "Digitally Verified by Prime Bank OCR AI";
+                display: block;
+                margin-top: 2rem;
+                text-align: center;
+                font-size: 0.8rem;
+                color: #666;
+                border-top: 1px solid #ccc;
+                padding-top: 0.5rem;
+            }
+        }
+    </style>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4,10V7H20V10H4M4,14H12V17H4V14M4,19H20V22H4V19Z" />
+            </svg>
+            Prime Bank OCR <span style="font-weight:400; font-size: 0.9em; color: #666;">| Intelligent Data Capture</span>
+        </div>
+        <div id="header-status" class="status-badge">
+            <span class="status-dot"></span>
+            <span id="status-text">Processing...</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- LEFT COLUMN: Controls & Logs -->
+        <section class="workflow-panel">
+            
+            <!-- Form Type -->
+            <div class="card">
+                <div style="font-size:0.85rem; font-weight:600; margin-bottom:0.5rem">1. Select Form Type</div>
+                <select id="form-type-selector" class="dt-input" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <option value="account_opening">Account Opening Form</option>
+                    <option value="card_request">Debit Card Request</option>
+                    <option value="cheque_request">Cheque Book Request</option>
+                </select>
+            </div>
+
+            <!-- Steps -->
+            <div class="card">
+                <div class="step-indicator">
+                    <div class="step active" id="step-1">
+                        <div class="step-circle">1</div>
+                        <div>Upload Document</div>
+                    </div>
+                    <div class="step" id="step-2">
+                        <div class="step-circle">2</div>
+                        <div>AI Extraction</div>
+                    </div>
+                    <div class="step" id="step-3">
+                        <div class="step-circle">3</div>
+                        <div>Verify & Save</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Area -->
+            <div class="card" id="upload-card">
+                <input type="file" id="file-input" hidden accept="image/*,application/pdf">
+                <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="#ccc" style="margin-bottom:1rem">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                    </svg>
+                    <p style="font-weight:500">Click to Upload Form</p>
+                    <p style="font-size:0.8rem; color:#888">Supports PDF, JPG, PNG</p>
+                </div>
+            </div>
+
+            <!-- Processing Log -->
+            <div class="card">
+                <div style="font-size:0.85rem; font-weight:600; margin-bottom:0.5rem">System Log</div>
+                <div class="log-console" id="console-log"></div>
+            </div>
+
+            <!-- Accuracy Rating -->
+            <div class="accuracy-card" id="accuracy-panel">
+                <div class="accuracy-label">Extraction Confidence</div>
+                <div class="accuracy-score" id="score-display">0%</div>
+                <div style="font-size:0.75rem; color:#666; margin-top:4px">Based on LLaMA Vision + Tesseract Hybrid</div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: Digital Twin (The Form) -->
+        <section class="preview-panel">
+            
+            <div class="empty-state" id="empty-state">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="#E5E7EB">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z" />
+                </svg>
+                <p style="margin-top:1rem">Awaiting document...</p>
+            </div>
+
+            <!-- DIGITAL TWIN HTML STRUCTURES -->
+            <div id="form-templates" style="display: none;">
+                <!-- Account Opening Form -->
+                <div id="dt-account_opening">
+                    <div class="dt-header">
+                        <h1>Prime Bank PLC</h1>
+                        <p>Account Opening Form (Personal)</p>
+                    </div>
+                    <div class="dt-section">
+                        <div class="dt-section-title">1. Customer Basic Information</div>
+                        <div class="dt-grid">
+                            <div class="dt-field">
+                                <label class="dt-label">Full Name</label>
+                                <input type="text" class="dt-input" data-key="name_of_customer">
+                            </div>
+                            <div class="dt-field">
+                                <label class="dt-label">Customer ID (UCIC)</label>
+                                <input type="text" class="dt-input" data-key="unique_customer_id">
+                            </div>
+                            <div class="dt-field">
+                                <label class="dt-label">Father's Name</label>
+                                <input type="text" class="dt-input" data-key="father_name">
+                            </div>
+                            <div class="dt-field">
+                                <label class="dt-label">Mother's Name</label>
+                                <input type="text" class="dt-input" data-key="mother_name">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Debit Card Request Form -->
+                <div id="dt-card_request">
+                    <div class="dt-header">
+                        <h1>Debit Card Request Form</h1>
+                        <p>For Personal Banking</p>
+                    </div>
+                    <div class="dt-section">
+                        <div class="dt-section-title">1. Customer Information</div>
+                        <div class="dt-grid">
+                            <div class="dt-field">
+                                <label class="dt-label">Customer Name</label>
+                                <input type="text" class="dt-input" data-key="customer_name">
+                            </div>
+                            <div class="dt-field">
+                                <label class="dt-label">Account Number</label>
+                                <input type="text" class="dt-input" data-key="account_number">
+                            </div>
+                        </div>
+                    </div>
+                     <div class="dt-section">
+                        <div class="dt-section-title">2. Card Details</div>
+                        <div class="dt-grid">
+                            <div class="dt-field">
+                                <label class="dt-label">Card Type</label>
+                                <input type="text" class="dt-input" data-key="card_type">
+                            </div>
+                            <div class="dt-field">
+                                <label class="dt-label">Delivery Branch</label>
+                                <input type="text" class="dt-input" data-key="delivery_branch">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cheque Book Request Form -->
+                <div id="dt-cheque_request">
+                    <div class="dt-header">
+                        <h1>Cheque Book Requisition</h1>
+                        <p>Customer Copy</p>
+                    </div>
+                    <div class="dt-section">
+                        <div class="dt-section-title">1. Account Information</div>
+                        <div class="dt-grid">
+                            <div class="dt-field">
+                                <label class="dt-label">Account Holder</label>
+                                <input type="text" class="dt-input" data-key="account_holder">
+                            </div>
+                            <div class="dt-field">
+                                <label class="dt-label">Account Number</label>
+                                <input type="text" class="dt-input" data-key="account_no">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dt-section">
+                        <div class="dt-section-title">2. Requisition Details</div>
+                        <div class="dt-grid">
+                            <div class="dt-field">
+                                <label class="dt-label">Number of Leaves</label>
+                                <input type="text" class="dt-input" data-key="number_of_leaves">
+                            </div>
+                            <div class="dt-field">
+                                <label class="dt-label">Branch Name</label>
+                                <input type="text" class="dt-input" data-key="branch_name">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="digital-twin" id="digital-twin">
+                <!-- Content will be injected here -->
+            </div>
+
+            <!-- Actions -->
+            <div class="action-bar" id="action-bar">
+                <button class="btn btn-secondary" onclick="resetDemo()">Cancel</button>
+                <button class="btn btn-primary" onclick="generatePDF()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style="display:inline-block; vertical-align:middle; margin-right:4px">
+                        <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+                    </svg>
+                    Verify & Save PDF
+                </button>
+            </div>
+
+        </section>
+    </main>
+
+    <div class="toast" id="toast">Notification</div>
+
+    <script>
+        const els = {
+            fileInput: document.getElementById('file-input'),
+            uploadCard: document.getElementById('upload-card'),
+            console: document.getElementById('console-log'),
+            actionBar: document.getElementById('action-bar'),
+            digitalTwin: document.getElementById('digital-twin'),
+            emptyState: document.getElementById('empty-state'),
+            accuracyPanel: document.getElementById('accuracy-panel'),
+            scoreDisplay: document.getElementById('score-display'),
+            status: document.getElementById('header-status'),
+            statusText: document.getElementById('status-text'),
+            formTypeSelector: document.getElementById('form-type-selector'),
+        };
+
+        // --- EVENT LISTENERS ---
+        els.fileInput.addEventListener('change', handleFileSelect);
+
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Reset parts of the UI for the validation step
+            els.console.innerHTML = '';
+            els.console.style.display = 'block';
+            els.uploadCard.style.display = 'none';
+            updateStep(1); // Ensure we start visually at step 1 before moving
+
+            const selectedFormType = document.getElementById('form-type-selector').value;
+            log(`Selected form type: ${selectedFormType}`);
+
+            log("Starting OCR validation...");
+            showToast("Step 1: Validating form type with OCR...");
+            showStatus('Validating...', true);
+
+            try {
+                const worker = await Tesseract.createWorker('eng');
+                const { data: { text } } = await worker.recognize(file);
+                await worker.terminate();
+
+                log("OCR processing complete.");
+
+                const ocrText = text.toLowerCase();
+                let formIsValid = false;
+
+                if (selectedFormType === 'account_opening' && (ocrText.includes('account opening') || ocrText.includes('aof'))) {
+                    formIsValid = true;
+                } else if (selectedFormType === 'card_request' && (ocrText.includes('debit card') || ocrText.includes('card request'))) {
+                    formIsValid = true;
+                } else if (selectedFormType === 'cheque_request' && (ocrText.includes('cheque book') || ocrText.includes('cheque request'))) {
+                    formIsValid = true;
+                }
+
+                if (formIsValid) {
+                    log("Form type validated successfully.");
+                    showToast("Validation successful! Starting data extraction...");
+                    // Proceed with the original logic
+                    startProcess(file.name);
+                } else {
+                    log("Error: Form type mismatch.");
+                    alert("Error: The uploaded document does not match the selected form type. Please upload the correct form.");
+                    resetDemo();
+                }
+            } catch (err) {
+                log(`An error occurred during OCR validation: ${err.message}`);
+                alert('An error occurred during document validation. Please try again.');
+                resetDemo();
+            }
+        }
+
+        function startProcess(fileName) {
+            log(`File selected: ${fileName}`);
+            runFullProcess();
+        }
+        
+        function runFullProcess() {
+            updateStep(2);
+            showStatus('Extracting Data...', true);
+            log('Running AI extraction...');
+            showToast('Step 2: Extracting data from the form...');
+
+            // Simulate AI processing delay
+            setTimeout(() => {
+                const selectedFormType = els.formTypeSelector.value;
+                const mockData = MOCK_DATA[selectedFormType];
+                
+                populateForm(mockData);
+                
+                log('Extraction complete.');
+                showToast('Data extracted. Please verify.');
+                
+                updateStep(3);
+                showStatus('Ready for Verification', false);
+                
+                els.emptyState.style.display = 'none';
+                els.digitalTwin.style.display = 'block';
+                els.actionBar.style.display = 'flex';
+                
+                // Show accuracy
+                const score = (Math.random() * (99 - 92) + 92).toFixed(2);
+                els.scoreDisplay.textContent = `${score}%`;
+                els.accuracyPanel.style.display = 'block';
+
+            }, 2500);
+        }
+        
+        function populateForm(data) {
+            const selectedFormType = els.formTypeSelector.value;
+            const template = document.getElementById(`dt-${selectedFormType}`).cloneNode(true);
+            els.digitalTwin.innerHTML = '';
+            els.digitalTwin.appendChild(template);
+
+            if (!data) {
+                log("No mock data found for this form type.", "error");
+                return;
+            }
+
+            Object.keys(data).forEach(key => {
+                const input = els.digitalTwin.querySelector(`[data-key="${key}"]`);
+                if (input) {
+                    input.value = data[key];
+                    // Simple confidence simulation
+                    if (Math.random() > 0.8) {
+                        input.classList.add('low-confidence');
+                    } else {
+                        input.classList.add('high-confidence');
+                    }
+                }
+            });
+        }
+        
+        // --- MOCK DATA (The "OCR Extraction") ---
+        const MOCK_DATA = {
+            account_opening: {
+                name_of_customer: "RAZWAN ABDULLAH",
+                unique_customer_id: "12478004",
+                father_name: "SALEH MIAH",
+                mother_name: "SAGILA BEGUM",
+            },
+            card_request: {
+                customer_name: "JANE DOE",
+                account_number: "123-456-789",
+                card_type: "Visa Debit",
+                delivery_branch: "Main Branch"
+            },
+            cheque_request: {
+                account_holder: "JOHN SMITH",
+                account_no: "987-654-321",
+                number_of_leaves: "25",
+                branch_name: "Downtown Branch"
+            }
+        };
+        
+        // --- UI & HELPERS ---
+        function log(msg, type = 'info') {
+            const line = document.createElement('div');
+            line.textContent = `> ${msg}`;
+            if (type === 'error') line.style.color = 'var(--danger-color)';
+            els.console.appendChild(line);
+            els.console.scrollTop = els.console.scrollHeight;
+        }
+
+        function updateStep(stepNum) {
+            document.querySelectorAll('.step').forEach((step, i) => {
+                step.classList.remove('active', 'completed');
+                if (i < stepNum - 1) step.classList.add('completed');
+                if (i === stepNum - 1) step.classList.add('active');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function showStatus(text, isActive) {
+            els.statusText.textContent = text;
+            if (isActive) {
+                els.status.style.display = 'flex';
+            } else {
+                els.status.style.display = 'none';
+            }
+        }
+
+        function resetDemo() {
+            els.fileInput.value = ''; // Clear file input
+            els.console.style.display = 'none';
+            els.console.innerHTML = '';
+            els.uploadCard.style.display = 'block';
+            els.digitalTwin.style.display = 'none';
+            els.digitalTwin.innerHTML = '';
+            els.emptyState.style.display = 'flex';
+            els.actionBar.style.display = 'none';
+            els.accuracyPanel.style.display = 'none';
+            showStatus('', false);
+            updateStep(1);
+        }
+
+        function generatePDF() {
+            showToast('Generating Verified PDF...');
+            window.print();
+        }
+
+        // Initial state
+        resetDemo();
+    </script>
+</body>
+</html>
